@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { UserPlus, AlertTriangle } from "lucide-react";
+import { UserPlus, AlertTriangle, Radio } from "lucide-react";
 import OpsSidebar from "@/components/ops/OpsSidebar";
 import StatusBar from "@/components/ops/StatusBar";
 import StatsCards from "@/components/ops/StatsCards";
@@ -9,25 +9,37 @@ import FloorPlan from "@/components/ops/FloorPlan";
 import FABMenu from "@/components/ops/FABMenu";
 import FloatingPanel from "@/components/ops/FloatingPanel";
 import VisitorForm from "@/components/ops/VisitorForm";
+import DeviceControlPanel from "@/components/ops/DeviceControlPanel";
+import QuickActions from "@/components/ops/QuickActions";
 
 interface PanelState {
   id: string;
   type: string;
   position: { x: number; y: number };
+  meta?: Record<string, any>;
 }
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [panels, setPanels] = useState<PanelState[]>([]);
 
-  const openPanel = (type: string) => {
-    if (panels.find((p) => p.type === type)) return; // already open
+  const openPanel = (type: string, meta?: Record<string, any>) => {
+    // For device panels, allow multiple with different filters
+    if (type === "device") {
+      const existing = panels.find(
+        (p) => p.type === "device" && p.meta?.filterType === meta?.filterType
+      );
+      if (existing) return;
+    } else {
+      if (panels.find((p) => p.type === type)) return;
+    }
     setPanels((prev) => [
       ...prev,
       {
         id: crypto.randomUUID(),
         type,
         position: { x: 200 + prev.length * 30, y: 120 + prev.length * 30 },
+        meta,
       },
     ]);
   };
@@ -38,25 +50,19 @@ const Index = () => {
 
   return (
     <div className="h-screen w-screen flex overflow-hidden bg-background">
-      {/* Sidebar */}
       <OpsSidebar active={activeSection} onNavigate={setActiveSection} />
 
-      {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
         <StatusBar />
 
         <div className="flex-1 flex flex-col p-3 gap-3 overflow-hidden">
-          {/* Stats row */}
           <StatsCards />
 
-          {/* Main content: FloorPlan + Logs */}
           <div className="flex-1 flex gap-3 min-h-0">
-            {/* Floor Plan */}
             <div className="flex-1 glass-panel overflow-hidden min-w-0">
               <FloorPlan />
             </div>
 
-            {/* Live Logs */}
             <div className="w-[440px] glass-panel overflow-hidden flex flex-col shrink-0">
               <LiveLogs />
             </div>
@@ -64,10 +70,16 @@ const Index = () => {
         </div>
       </div>
 
+      {/* Quick Actions bar */}
+      <QuickActions />
+
       {/* FAB Menu */}
       <FABMenu
         onOpenVisitor={() => openPanel("visitor")}
         onOpenIncident={() => openPanel("incident")}
+        onOpenDevicePanel={(filterType, title) =>
+          openPanel("device", { filterType, title })
+        }
       />
 
       {/* Floating panels */}
@@ -122,6 +134,24 @@ const Index = () => {
                     Registrar Incidente
                   </button>
                 </div>
+              </FloatingPanel>
+            );
+          }
+          if (panel.type === "device") {
+            return (
+              <FloatingPanel
+                key={panel.id}
+                id={panel.id}
+                title={panel.meta?.title || "Controle de Dispositivos"}
+                icon={<Radio className="w-4 h-4" />}
+                onClose={() => closePanel(panel.id)}
+                defaultPosition={panel.position}
+                defaultSize={{ width: 380, height: 480 }}
+              >
+                <DeviceControlPanel
+                  filterType={panel.meta?.filterType}
+                  title={panel.meta?.title}
+                />
               </FloatingPanel>
             );
           }

@@ -9,24 +9,27 @@ import {
   X,
   Car,
   ShieldAlert,
+  Radio,
 } from "lucide-react";
 import { toast } from "sonner";
 
 interface FABMenuProps {
   onOpenVisitor: () => void;
   onOpenIncident: () => void;
+  onOpenDevicePanel: (filterType?: string, title?: string) => void;
 }
 
 const actions = [
   { id: "gate-main", label: "Abrir Portão Principal", icon: DoorOpen, color: "bg-primary" },
   { id: "gate-vehicle", label: "Abrir Portão Veículos", icon: Car, color: "bg-status-info" },
   { id: "audio", label: "Intercomunicação", icon: Mic, color: "bg-accent" },
+  { id: "devices", label: "Todos os Dispositivos", icon: Radio, color: "bg-secondary" },
   { id: "visitor", label: "Novo Visitante", icon: UserPlus, color: "bg-primary" },
   { id: "alert", label: "Alerta de Segurança", icon: ShieldAlert, color: "bg-destructive" },
   { id: "incident", label: "Registrar Incidente", icon: AlertTriangle, color: "bg-status-warning" },
 ];
 
-export default function FABMenu({ onOpenVisitor, onOpenIncident }: FABMenuProps) {
+export default function FABMenu({ onOpenVisitor, onOpenIncident, onOpenDevicePanel }: FABMenuProps) {
   const [open, setOpen] = useState(false);
 
   const handleAction = (id: string) => {
@@ -40,15 +43,19 @@ export default function FABMenu({ onOpenVisitor, onOpenIncident }: FABMenuProps)
       return;
     }
     if (id === "gate-main") {
-      toast.success("Portão Principal: comando enviado");
+      onOpenDevicePanel("gate", "Portões");
       return;
     }
     if (id === "gate-vehicle") {
-      toast.success("Portão Veículos: comando enviado");
+      onOpenDevicePanel("gate", "Portões de Veículos");
       return;
     }
     if (id === "audio") {
-      toast.info("Intercomunicação: conectando ao leitor...");
+      onOpenDevicePanel("intercom", "Intercomunicação");
+      return;
+    }
+    if (id === "devices") {
+      onOpenDevicePanel(undefined, "Todos os Dispositivos");
       return;
     }
     if (id === "alert") {
