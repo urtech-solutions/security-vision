@@ -45,7 +45,7 @@ const availableActions: Omit<QuickAction, "id">[] = [
   { label: "Porta Bloco B", icon: "lock", color: "bg-secondary", deviceName: "Leitor Facial", portName: "Porta Hall" },
 ];
 
-export default function QuickActions() {
+export default function QuickActions({ embedded = false }: { embedded?: boolean }) {
   const [actions, setActions] = useState<QuickAction[]>(defaultActions);
   const [editing, setEditing] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
