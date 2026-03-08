@@ -69,6 +69,88 @@ export default function QuickActions({ embedded = false }: { embedded?: boolean 
     toast.success(`Atalho "${action.label}" adicionado`);
   };
 
+  if (embedded) {
+    return (
+      <div>
+        <div className="flex items-center justify-between pb-2 border-b border-border mb-2">
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Atalhos Personalizados
+          </span>
+          <button
+            onClick={() => { setEditing(!editing); setShowAdd(false); }}
+            className={`p-1 rounded transition-colors ${
+              editing ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Settings className="w-3 h-3" />
+          </button>
+        </div>
+        <div className="space-y-1">
+          {actions.map((action) => {
+            const Icon = iconMap[action.icon];
+            return (
+              <div key={action.id} className="flex items-center gap-1">
+                {editing && <GripVertical className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
+                <button
+                  onClick={() => triggerAction(action)}
+                  className={`flex-1 flex items-center gap-2 px-2.5 py-2 rounded-md text-left transition-all ${
+                    editing ? "bg-muted/50 cursor-default" : "hover:bg-muted active:scale-[0.98]"
+                  }`}
+                >
+                  <div className={`w-6 h-6 rounded flex items-center justify-center ${action.color} text-primary-foreground flex-shrink-0`}>
+                    <Icon className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-foreground truncate">{action.label}</p>
+                    <p className="text-[9px] text-muted-foreground truncate">{action.deviceName}</p>
+                  </div>
+                </button>
+                {editing && (
+                  <button onClick={() => removeAction(action.id)} className="p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors flex-shrink-0">
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        {editing && (
+          <div className="mt-2 pt-2 border-t border-border">
+            {!showAdd ? (
+              <button onClick={() => setShowAdd(true)} className="w-full flex items-center justify-center gap-1 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                <Plus className="w-3 h-3" />
+                Adicionar atalho
+              </button>
+            ) : (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[10px] text-muted-foreground">Selecione uma ação</span>
+                  <button onClick={() => setShowAdd(false)} className="text-muted-foreground hover:text-foreground">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+                {availableActions.filter((a) => !actions.find((existing) => existing.label === a.label)).map((action, i) => {
+                  const Icon = iconMap[action.icon];
+                  return (
+                    <button key={i} onClick={() => addAction(action)} className="w-full flex items-center gap-2 px-2.5 py-2 rounded-md hover:bg-muted transition-colors text-left">
+                      <div className={`w-5 h-5 rounded flex items-center justify-center ${action.color} text-primary-foreground`}>
+                        <Icon className="w-3 h-3" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs text-foreground truncate">{action.label}</p>
+                        <p className="text-[9px] text-muted-foreground">{action.deviceName}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="fixed bottom-6 left-20 z-40">
       {/* Toggle bar */}
