@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { AnimatePresence } from "framer-motion";
 import { UserPlus, AlertTriangle, Radio } from "lucide-react";
 import OpsSidebar from "@/components/ops/OpsSidebar";
@@ -11,6 +11,9 @@ import FloatingPanel from "@/components/ops/FloatingPanel";
 import VisitorForm from "@/components/ops/VisitorForm";
 import DeviceControlPanel from "@/components/ops/DeviceControlPanel";
 import QuickActions from "@/components/ops/QuickActions";
+import DashboardGrid, {
+  DashboardWidget,
+} from "@/components/ops/DashboardGrid";
 
 interface PanelState {
   id: string;
@@ -19,12 +22,46 @@ interface PanelState {
   meta?: Record<string, any>;
 }
 
+const ALL_WIDGETS: DashboardWidget[] = [
+  { id: "stats", type: "stats", title: "Indicadores", minW: 6, minH: 2 },
+  { id: "floorplan", type: "floorplan", title: "Planta Baixa", minW: 4, minH: 5 },
+  { id: "logs", type: "logs", title: "Logs em Tempo Real", minW: 3, minH: 4 },
+  { id: "quickactions", type: "quickactions", title: "Ações Rápidas", minW: 2, minH: 3 },
+  { id: "devices", type: "devices", title: "Dispositivos", minW: 3, minH: 4 },
+];
+
+const INITIAL_WIDGET_IDS = ["stats", "floorplan", "logs"];
+
+const STORAGE_KEY_WIDGETS = "ops-dashboard-widgets";
+
+function loadWidgets(): DashboardWidget[] {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY_WIDGETS);
+    if (saved) {
+      const ids: string[] = JSON.parse(saved);
+      return ids
+        .map((id) => ALL_WIDGETS.find((w) => w.id === id))
+        .filter(Boolean) as DashboardWidget[];
+    }
+  } catch {}
+  return INITIAL_WIDGET_IDS.map(
+    (id) => ALL_WIDGETS.find((w) => w.id === id)!
+  );
+}
+
+function saveWidgets(widgets: DashboardWidget[]) {
+  localStorage.setItem(
+    STORAGE_KEY_WIDGETS,
+    JSON.stringify(widgets.map((w) => w.id))
+  );
+}
+
 const Index = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [panels, setPanels] = useState<PanelState[]>([]);
+  const [widgets, setWidgets] = useState<DashboardWidget[]>(loadWidgets);
 
   const openPanel = (type: string, meta?: Record<string, any>) => {
-    // For device panels, allow multiple with different filters
     if (type === "device") {
       const existing = panels.find(
         (p) => p.type === "device" && p.meta?.filterType === meta?.filterType
@@ -48,6 +85,66 @@ const Index = () => {
     setPanels((prev) => prev.filter((p) => p.id !== id));
   };
 
+  const handleAddWidget = useCallback((widget: DashboardWidget) => {
+    setWidgets((prev) => {
+      const next = [...prev, widget];
+      saveWidgets(next);
+      return next;
+    });
+  }, []);
+
+  const handleRemoveWidget = useCallback((id: string) => {
+    setWidgets((prev) => {
+      const next = prev.filter((w) => w.id !== id);
+      saveWidgets(next);
+      return next;
+    });
+  }, []);
+
+  const renderWidget = useCallback(
+    (widget: DashboardWidget, editMode: boolean) => {
+      switch (widget.type) {
+        case "stats":
+          return (
+            <div className="h-full overflow-auto p-2">
+              <StatsCards />
+            </div>
+          );
+        case "floorplan":
+          return (
+            <div className="h-full glass-panel overflow-hidden">
+              <FloorPlan />
+            </div>
+          );
+        case "logs":
+          return (
+            <div className="h-full glass-panel overflow-hidden flex flex-col">
+              <LiveLogs />
+            </div>
+          );
+        case "quickactions":
+          return (
+            <div className="h-full glass-panel overflow-auto p-3">
+              <QuickActions embedded />
+            </div>
+          );
+        case "devices":
+          return (
+            <div className="h-full glass-panel overflow-auto">
+              <DeviceControlPanel />
+            </div>
+          );
+        default:
+          return (
+            <div className="h-full glass-panel flex items-center justify-center text-muted-foreground text-xs">
+              Widget: {widget.title}
+            </div>
+          );
+      }
+    },
+    []
+  );
+
   return (
     <div className="h-screen w-screen flex overflow-hidden bg-background">
       <OpsSidebar active={activeSection} onNavigate={setActiveSection} />
@@ -55,23 +152,14 @@ const Index = () => {
       <div className="flex-1 flex flex-col min-w-0">
         <StatusBar />
 
-        <div className="flex-1 flex flex-col p-3 gap-3 overflow-hidden">
-          <StatsCards />
-
-          <div className="flex-1 flex gap-3 min-h-0">
-            <div className="flex-1 glass-panel overflow-hidden min-w-0">
-              <FloorPlan />
-            </div>
-
-            <div className="w-[440px] glass-panel overflow-hidden flex flex-col shrink-0">
-              <LiveLogs />
-            </div>
-          </div>
-        </div>
+        <DashboardGrid
+          widgets={widgets}
+          renderWidget={renderWidget}
+          availableWidgets={ALL_WIDGETS}
+          onAddWidget={handleAddWidget}
+          onRemoveWidget={handleRemoveWidget}
+        />
       </div>
-
-      {/* Quick Actions bar */}
-      <QuickActions />
 
       {/* FAB Menu */}
       <FABMenu
@@ -112,7 +200,9 @@ const Index = () => {
                 defaultSize={{ width: 400, height: 380 }}
               >
                 <div className="p-4 space-y-3">
-                  <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Novo Incidente</p>
+                  <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+                    Novo Incidente
+                  </p>
                   <select className="w-full h-9 px-3 text-sm bg-muted border border-border rounded-md text-foreground focus:outline-none focus:ring-1 focus:ring-primary">
                     <option value="">Tipo de incidente</option>
                     <option value="invasao">Tentativa de invasão</option>
